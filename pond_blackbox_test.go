@@ -18,6 +18,13 @@ func assertEqual(t *testing.T, expected interface{}, actual interface{}) {
 	}
 }
 
+func assertGreaterEqual(t *testing.T, expected int64, actual int64) {
+	if !(expected <= actual) {
+		t.Helper()
+		t.Errorf("Expected >= %T(%v) but was %T(%v)", expected, expected, actual, actual)
+	}
+}
+
 func assertNotEqual(t *testing.T, expected interface{}, actual interface{}) {
 	if expected == actual {
 		t.Helper()
@@ -477,6 +484,7 @@ func TestPoolWithCustomStrategy(t *testing.T) {
 }
 
 func TestMetricsAndGetters(t *testing.T) {
+	startTime := time.Now().UnixMilli()
 
 	pool := pond.New(5, 10)
 	assertEqual(t, 0, pool.RunningWorkers())
@@ -514,6 +522,8 @@ func TestMetricsAndGetters(t *testing.T) {
 	assertEqual(t, uint64(1), pool.FailedTasks())
 	assertEqual(t, uint64(17), pool.CompletedTasks())
 	assertEqual(t, uint64(0), pool.WaitingTasks())
+	assertEqual(t, uint64(17), pool.StartedTasks())
+	assertGreaterEqual(t, startTime, pool.LastStartedTaskTime().UnixMilli())
 }
 
 func TestSubmitWithContext(t *testing.T) {
