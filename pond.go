@@ -81,7 +81,7 @@ type WorkerPool struct {
 	failedTaskCount          uint64
 	timedOutInQueueTaskCount uint64
 	startedTaskCount         uint64
-	lastStartedTaskTime      time.Time
+	lastStartedTaskTime      *time.Time
 	// Configurable settings
 	maxWorkers    int
 	maxCapacity   int
@@ -198,7 +198,7 @@ func (p *WorkerPool) StartedTasks() uint64 {
 }
 
 // LastStartedTaskTime returns the last time a task was taken from the queue by a worker for processing
-func (p *WorkerPool) LastStartedTaskTime() time.Time {
+func (p *WorkerPool) LastStartedTaskTime() *time.Time {
 	return p.lastStartedTaskTime
 }
 
@@ -472,7 +472,8 @@ func (p *WorkerPool) executeTask(task func(), isFirstTask bool) {
 
 	// Increment started task count
 	atomic.AddUint64(&p.startedTaskCount, 1)
-	p.lastStartedTaskTime = time.Now()
+	now := time.Now()
+	p.lastStartedTaskTime = &now
 
 	// Execute task
 	task()
