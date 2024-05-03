@@ -315,12 +315,22 @@ func (p *WorkerPool) SubmitAndWait(task func()) {
 // SubmitBefore attempts to send a task for execution to this worker pool but aborts it
 // if the task did not start before the given deadline.
 func (p *WorkerPool) SubmitBefore(task func(), deadline time.Duration) {
+	p.submitBefore(task, deadline, true)
+}
+
+// TrySubmitBefore attempts to send a task for execution to this worker pool but aborts it
+// if the task did not start before the given deadline.
+func (p *WorkerPool) TrySubmitBefore(task func(), deadline time.Duration) {
+	p.submitBefore(task, deadline, false)
+}
+
+func (p *WorkerPool) submitBefore(task func(), deadline time.Duration, mustSubmit bool) {
 	if task == nil {
 		return
 	}
 
 	timer := time.NewTimer(deadline)
-	p.Submit(func() {
+	p.submit(func() {
 		select {
 		case <-timer.C:
 			// Deadline was reached, abort the task
@@ -332,7 +342,8 @@ func (p *WorkerPool) SubmitBefore(task func(), deadline time.Duration) {
 
 			task()
 		}
-	})
+	},
+		mustSubmit)
 }
 
 // Stop causes this pool to stop accepting new tasks and signals all workers to exit.
