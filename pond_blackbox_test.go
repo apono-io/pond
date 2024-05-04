@@ -212,6 +212,45 @@ func TestSubmitBefore(t *testing.T) {
 	assertEqual(t, uint64(1), pool.FailedTasks())
 }
 
+func TestTrySubmitBefore(t *testing.T) {
+
+	pool := pond.New(1, 1)
+
+	// Submit a long-running task
+	var doneCount int32
+	pool.Submit(func() {
+		time.Sleep(50 * time.Millisecond)
+		atomic.AddInt32(&doneCount, 1)
+	})
+
+	// Submit a task that times out after 5ms
+	dispatched := pool.TrySubmitBefore(func() {
+		time.Sleep(5 * time.Millisecond)
+		atomic.AddInt32(&doneCount, 1)
+	}, 5*time.Millisecond)
+
+	// Task was dispatched because the pool had capacity
+	assertEqual(t, true, dispatched)
+
+	// Submit a task that times out after 1s
+	dispatched = pool.TrySubmitBefore(func() {
+		time.Sleep(5 * time.Millisecond)
+		atomic.AddInt32(&doneCount, 1)
+	}, 5*time.Millisecond)
+
+	// Task was not dispatched because the pool was full
+	assertEqual(t, false, dispatched)
+
+	pool.StopAndWait()
+
+	// Only 2 tasks must have executed and 1 timed out
+	assertEqual(t, uint64(2), pool.SubmittedTasks())
+	assertEqual(t, int32(1), atomic.LoadInt32(&doneCount))
+	assertEqual(t, uint64(1), pool.SuccessfulTasks())
+	assertEqual(t, uint64(1), pool.TimedOutInQueueTasks())
+	assertEqual(t, uint64(1), pool.FailedTasks())
+}
+
 func TestSubmitBeforeWithNilTask(t *testing.T) {
 
 	pool := pond.New(3, 5)
